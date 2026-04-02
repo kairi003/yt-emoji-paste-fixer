@@ -2,18 +2,12 @@
   "manifest_version": 3,
   "name": "YTLive Paste Fixer",
   "version": "1.0",
-  "description": "Fix paste functionality in YouTube live chat by handling emoji and text insertion properly",
+  "description": "Fix paste functionality in YouTube by handling emoji and text insertion properly",
   "content_scripts": [
     {
-      "matches": [ "https://www.youtube.com/live_chat?*" ],
+      "matches": [ "https://www.youtube.com/*" ],
       "js": [ "content.js" ],
       "all_frames": true
-    }
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [ "inject.js" ],
-      "matches": [ "https://www.youtube.com/*" ]
     }
   ]
 }
