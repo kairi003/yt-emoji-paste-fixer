@@ -1,16 +1,19 @@
 //@ts-check
 
+const inject = () => {
+  const script = document.createElement('script');
+  script.src = chrome.runtime.getURL('inject.js');
+  document.documentElement.appendChild(script);
+}
+
 /** @param {HTMLElement} input */
 const register = (input) => {
-  console.log('Registering paste event listener for input:', input);
   input.addEventListener('paste', (event) => {
     const data = event.clipboardData?.getData('text/html');
     const content = data?.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)?.[1];
-    // const emojis = window?.ytInitialData?.continuationContents?.liveChatContinuation?.emojis;
-    // console.debug('Pasted content:', content);
-    // console.debug('Available emojis:', emojis);
-    // if (!content || !emojis) return;
-    if (!content) return;
+    /** @type {{ emojiId: string, shortcuts: string[] }[]} */
+    const emojis = JSON.parse(document.body.dataset.emojis || '[]');
+    if (!content || !emojis) return;
 
     event.preventDefault();
     event.stopPropagation();
@@ -21,9 +24,8 @@ const register = (input) => {
     for (const ch of div.childNodes) {
       console.debug('Processing child node:', ch);
       if (ch instanceof HTMLImageElement) {
-        // const emoji = emojis.find(e => e.emojiId === ch.dataset.emojiId);
-        // const text = emoji?.shortcuts?.[0] || ch.alt || '';
-        const text = `:${ch.alt}:` || '';
+        const emoji = emojis.find(e => e.emojiId === ch.dataset.emojiId);
+        const text = emoji?.shortcuts?.[0] || ch.alt || '';
         document.execCommand('insertHTML', false, text);
       } else {
         document.execCommand('insertHTML', false, ch.textContent || '');
@@ -45,4 +47,4 @@ check() || new MutationObserver((_, observer) => {
   if (check()) observer.disconnect();
 }).observe(document, { childList: true, subtree: true });
 
-console.log('YTLive Paste Fixer loaded');
+inject();

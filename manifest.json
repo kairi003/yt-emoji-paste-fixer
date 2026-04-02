@@ -5,10 +5,15 @@
   "description": "Fix paste functionality in YouTube live chat by handling emoji and text insertion properly",
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/live_chat*"],
-      "js": ["content.js"],
+      "matches": [ "https://www.youtube.com/live_chat?*" ],
+      "js": [ "content.js" ],
       "all_frames": true
     }
   ],
-  "permissions": ["clipboardRead"]
+  "web_accessible_resources": [
+    {
+      "resources": [ "inject.js" ],
+      "matches": [ "https://www.youtube.com/*" ]
+    }
+  ]
 }
