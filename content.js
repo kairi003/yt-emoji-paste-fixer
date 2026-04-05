@@ -11,31 +11,51 @@ const getText = (img) => {
   return `:_${alt}:`;
 }
 
+/** @param {string} data */
+const parseYTComment = (data) => {
+  try {
+    const dom = new DOMParser().parseFromString(data, 'text/html');
+    const result = [];
+    for (const ch of dom.body.childNodes) {
+      if (/#comment|META/.test(ch.nodeName)) continue;
+      if (ch instanceof HTMLImageElement && ch.classList.contains('yt-formatted-string')) {
+        result.push(getText(ch))
+        continue;
+      }
+      if (ch instanceof HTMLSpanElement) {
+        result.push(ch.textContent)
+        continue;
+      }
+      // Not supported node, just return null to prevent pasting 
+      return null;
+    }
+    return result;
+  } catch {
+    // If any error occurs, just return null to prevent pasting
+    return null;
+  }
+}
+
 /** @param {ClipboardEvent} event */
-const halder = (event) => {
+const handler = (event) => {
   const data = event.clipboardData?.getData('text/html');
-  const content = data?.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)?.[1];
-  if (!content) return;
+  if (!data) return;
+  const commentData = parseYTComment(data);
+  if (!commentData || commentData.length === 0) return;
 
   event.preventDefault();
   event.stopPropagation();
 
-  const div = document.createElement('div');
-  div.innerHTML = content;
-  for (const ch of div.childNodes) {
-    if (ch instanceof HTMLImageElement) {
-      document.execCommand('insertHTML', false, getText(ch));
-    } else {
-      document.execCommand('insertHTML', false, ch.textContent || '');
-    }
+  for (const text of commentData) {
+    document.execCommand('insertHTML', false, text);
   }
 }
 
 const check = () => {
   const input = document.querySelector('div#input[contenteditable],div#contenteditable-root[contenteditable]');
   if (input instanceof HTMLElement) {
-    input.removeEventListener('paste', halder, { capture: true });
-    input.addEventListener('paste', halder, { capture: true });
+    input.removeEventListener('paste', handler, { capture: true });
+    input.addEventListener('paste', handler, { capture: true });
   }
 }
 

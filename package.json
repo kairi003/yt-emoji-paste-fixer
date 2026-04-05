@@ -1,6 +1,6 @@
 {
   "name": "ytlive-paste-fixer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "license": "MIT",
   "description": "Fix emoji paste issues in YouTube comment or live chat",
   "author": "kairi003",
