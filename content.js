@@ -1,7 +1,7 @@
 //@ts-check
 
 /** @param {HTMLImageElement} img */
-const getText = (img) => {
+const getImgText = (img) => {
   const { alt, dataset: { emojiId } } = img;
   // Not youtube emoji, just return alt text
   if (!emojiId) return alt || '';
@@ -11,43 +11,25 @@ const getText = (img) => {
   return `:_${alt}:`;
 }
 
-/** @param {string} data */
-const parseYTComment = (data) => {
-  try {
-    const dom = new DOMParser().parseFromString(data, 'text/html');
-    const result = [];
-    for (const ch of dom.body.childNodes) {
-      if (/#comment|META/.test(ch.nodeName)) continue;
-      if (ch instanceof HTMLImageElement && ch.classList.contains('yt-formatted-string')) {
-        result.push(getText(ch))
-        continue;
-      }
-      if (ch instanceof HTMLSpanElement) {
-        result.push(ch.textContent)
-        continue;
-      }
-      // Not supported node, just return null to prevent pasting 
-      return null;
-    }
-    return result;
-  } catch {
-    // If any error occurs, just return null to prevent pasting
-    return null;
-  }
-}
-
 /** @param {ClipboardEvent} event */
 const handler = (event) => {
   const data = event.clipboardData?.getData('text/html');
   if (!data) return;
-  const commentData = parseYTComment(data);
-  if (!commentData || commentData.length === 0) return;
+
+  const div = document.createElement('div');
+  div.innerHTML = data.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)?.[1] ?? data;
+  if (!div.querySelector('.yt-formatted-string')) return;
 
   event.preventDefault();
   event.stopPropagation();
 
-  for (const text of commentData) {
-    document.execCommand('insertHTML', false, text);
+  for (const ch of div.childNodes) {
+    if (/#comment|meta/.test(ch.nodeName.toLowerCase())) continue;
+    if (ch instanceof HTMLImageElement) {
+      document.execCommand('insertHTML', false, getImgText(ch));
+    } else {
+      document.execCommand('insertHTML', false, ch.textContent || '');
+    }
   }
 }
 
@@ -60,4 +42,4 @@ const check = () => {
 }
 
 new MutationObserver(check).observe(document, { childList: true, subtree: true });
-check()
+check();
