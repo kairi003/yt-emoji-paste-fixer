@@ -1,14 +1,14 @@
 //@ts-check
 
-/** @param {HTMLImageElement} img */
-const getImgText = (img) => {
-  const { alt, dataset: { emojiId } } = img;
-  // Not youtube emoji, just return alt text
-  if (!emojiId) return alt || '';
-  // For youtube official emoji, return :alt:
-  if (emojiId.startsWith('UCkszU2WH9gy1mb0dV-11UJg/')) return `:${alt}:`;
-  // For custom emoji, return :_alt:
-  return `:_${alt}:`;
+/** @param {Node} node */
+const getText = (node) => {
+  if (node instanceof HTMLImageElement) {
+    return node.getAttribute('shared-tooltip-text') || node.alt || undefined;
+  } else if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || undefined;
+  } else {
+    return undefined;
+  }
 }
 
 /** @param {ClipboardEvent} event */
@@ -16,19 +16,22 @@ const handler = (event) => {
   const data = event.clipboardData?.getData('text/html');
   if (!data) return;
 
-  const div = document.createElement('div');
-  div.innerHTML = data.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)?.[1] ?? data;
-  if (!div.querySelector('.yt-formatted-string')) return;
+  const root = document.createElement('parent');
+  root.innerHTML = data;
+  if (!root.querySelector('.yt-formatted-string')) return;
 
   event.preventDefault();
   event.stopPropagation();
 
-  for (const ch of div.childNodes) {
-    if (/#comment|meta/.test(ch.nodeName.toLowerCase())) continue;
-    if (ch instanceof HTMLImageElement) {
-      document.execCommand('insertHTML', false, getImgText(ch));
-    } else {
-      document.execCommand('insertHTML', false, ch.textContent || '');
+  const walker = document.createTreeWalker(
+    root, 
+    NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+  );
+
+  for (let cur = walker.nextNode(); cur; cur = walker.nextNode()) {
+    const text = getText(cur);
+    if (text) {
+      document.execCommand('insertText', false, text.replaceAll(/[\r\n]+/g, ' '));
     }
   }
 }
