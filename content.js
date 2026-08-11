@@ -2,13 +2,24 @@
 
 /** @param {Node} node */
 const getText = (node) => {
-  if (node instanceof HTMLImageElement) {
-    return node.getAttribute('shared-tooltip-text') || node.alt || undefined;
-  } else if (node.nodeType === Node.TEXT_NODE) {
+  if (node.nodeType === Node.TEXT_NODE) {
     return node.textContent || undefined;
-  } else {
-    return undefined;
   }
+
+  if (node instanceof HTMLImageElement) {
+    const { alt, dataset: { emojiId } } = node;
+    const sharedTooltipText = node.getAttribute('shared-tooltip-text');
+    // return shared-tooltip-text if available
+    if (sharedTooltipText) return sharedTooltipText;
+    // no alt text, return undefined
+    if (!alt) return undefined;
+    // no emojiId, return alt text
+    if (!emojiId) return alt;
+    // return :{alt}: for official emojis, otherwise return :_{alt}: for custom emojis
+    return emojiId.startsWith('UCkszU2WH9gy1mb0dV-11UJg/') ? `:${alt}:` : `:_${alt}:`;
+  }
+
+  return undefined;
 }
 
 /** @param {ClipboardEvent} event */
@@ -17,14 +28,14 @@ const handler = (event) => {
   if (!data) return;
 
   const root = document.createElement('parent');
-  root.innerHTML = data;
+  root.innerHTML = data.match(/<!--StartFragment-->([\s\S]*?)<!--EndFragment-->/)?.[1] ?? data;
   if (!root.querySelector('.yt-formatted-string')) return;
 
   event.preventDefault();
   event.stopPropagation();
 
   const walker = document.createTreeWalker(
-    root, 
+    root,
     NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
   );
 
